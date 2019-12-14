@@ -1,0 +1,174 @@
+// Program to make an energy saving  bidirectional visitor counter using IR sensor for ATMEL AT89S51 microntroller
+//code by John Samuel for the design and implementation of a Bi-directional Vistor Counter
+#include <reg51.h> 
+unsigned int num=0; 
+void msdelay(unsigned int t); 
+sbit relay1=P1^0; 
+sbit relay2=P1^1; 
+sbit relay3=P1^2; 
+sbit relay4=P1^3; 
+sbit dig_ctrl_4=P3^3; //declarations of  the anodes  of seven segments 
+sbit dig_ctrl_3=P3^2; 
+sbit dig_ctrl_2=P3^1; 
+sbit dig_ctrl_1=P3^0; 
+unsigned digi_val[16]={0xc0, 0xf9, 0xa4, 0xb0, 0x99, 0x92, 0x82, 0xf8, 0x80, 0x90, 0x88, 0x83, 0xc6, 0xa1, 0x 86, 0x8e};  //seven segement hexadecimal array for displaying digits 
+unsigned int dig_1, dig_2, dig_3, dig_4, test=0;
+unsigned char dig_disp=0; 
+sbit up=P3^4; //entry sensor is connected to pin 4 of port 3 
+sbit down=P3^5; //exit sensor is connected to pin 5 of port 3 
+
+void init() //  to initialize the output pins and Timer0 
+{ 
+  TMOD=0x01; 
+  TL0=0xf6; 
+  TH0=0xFf; 
+  IE=0x82; 
+  TR0=1;
+} 
+
+void delay() //To provide a small time delay 
+{ 
+  int count=0, sec; 
+  
+  for (sec=0; sec<0.5; sec++) 
+  { 
+    { 
+      TMOD=0x01; 
+      TL0=0x36; 
+      TH0=0xF6; 
+      TR0=1; 
+      while (TF0==0); 
+      TR0=0; 
+      TF0=0; 
+      count++;
+    }
+  }
+} 
+
+void display() interrupt 1 // Function to display the digits on seven segment.   
+{ 
+  P2=0xFF; 
+  dig_ctrl_1 = dig_ctrl_3 = dig_ctrl_2 = dig_ctrl_4 = 0; 
+  dig_disp++; 
+  dig_disp=dig_disp%4; 
+
+  switch(dig_disp) 
+  { 
+  case 0: 
+    P2 = digi_val[dig_1]; 
+    dig_ctrl_1 = 1; 
+    break; 
+
+  case 1: 
+    P2 = digi_val[dig_2]; 
+    dig_ctrl_2 = 1; 
+    break; 
+
+  case 2: 
+    P2 = digi_val[dig_3]; 
+    dig_ctrl_3 = 1; 
+    break; 
+
+  case 3: 
+    P2 = digi_val[dig_4]; 
+    dig_ctrl_4 = 1;  
+    break;
+  }
+} 
+
+void main() 
+{ 
+  P1=0x00; // configures port 1 pins to be an input I/O line 
+  init(); 
+
+  while (1) 
+  {    
+    up=down=1; 
+
+    if (up==0&&down==1) //checks if entry sensor’s rays is broken 
+    { 
+      test++; 
+      num=test; 
+      dig_4=num%10; 
+      num=num/10; 
+      dig_3=num%10; 
+      num=num/10; 
+      dig_2=num%10; 
+      dig_1=num/10;      
+      msdelay(100);      
+      while (up==0&&down==1); 
+
+      if (test>0&&test<=0)  
+      {      
+        relay1=0;
+      } else     
+      {      
+        relay1=1;
+      } 
+
+      if (test>0&&test<=2)    
+      {      
+        relay2=0;
+      } else     
+      {      
+        relay2=1;
+      }    
+      if (test>0&&test<=4)     
+      {      
+        relay3=0;
+      } else     
+      {      
+        relay3=1;
+      }    
+      if (test>0&&test<=6)     
+      {      
+        relay4=0;
+      } else     
+      {      
+        relay4=1;
+      }    
+      if (test==9999)    
+      while (test==9999);
+    } 
+
+    if (up==1&&down==0) //check if down pin is pressed 
+    { 
+      test--; 
+      num=test; 
+      dig_4=num%10; 
+      num=num/10; 
+      dig_3=num%10; 
+      num=num/10; 
+      dig_2=num%10; 
+      dig_1=num/10; 
+      msdelay(100);      
+      while (up==1&&down==0);   
+       
+      if (test==0)     
+      {      
+        relay1=0;
+      }    
+      if (test==2)     
+      {      
+        relay2=0;
+      }    
+      if (test==4)     
+      {      
+        relay3=0;
+      }    
+      if (test==6)     
+      {      
+        relay4=0;
+      }    
+      if (test==0)
+      {    
+        init();
+      }
+    } 
+
+void msdelay(unsigned int t) 
+            { 
+              unsigned int i, j; 
+              for (i=0; i<t; i++); 
+              for (j=0; j<1275; j++);
+            } 
